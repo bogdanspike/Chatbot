@@ -1,0 +1,46 @@
+import discord, os
+
+
+class MyClient(discord.Client):
+    async def on_ready(self):
+        print(f'Logged on as {self.user}!')
+
+    async def on_message(self, message):
+        channel = message.channel.name
+        restricted_channels = ['bot-commands']
+
+        prefix = "b."
+        if message.content.startswith(prefix):
+            if channel in restricted_channels:
+                command = message.content[len(prefix):]
+                isAdmin = [role.name == 'Admin' for role in message.author.roles]
+
+                if command == 'help':
+                    await message.channel.send('```\n'
+                                               'Commands:\n'
+                                               'help - This is the help command\n'
+                                               'stats - This is the status command\n'
+                                               '```')
+                if command == 'stats':
+                    members = len([member for member in self.users])
+                    print(members)
+                    if isAdmin:
+                        await message.channel.send('You are an admin.')
+                        await message.channel.send(members)
+                    else:
+                        await message.channel.send('You are not an admin.')
+
+                else:
+                    await message.channel.send('This command does not exist.')
+
+            else:
+                await message.delete()
+                await message.channel.send('PyHelper is restricted for bot-commands channel.')
+
+
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+
+client = MyClient(intents=intents)
+client.run(os.environ['token'])
