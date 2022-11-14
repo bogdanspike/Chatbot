@@ -16,7 +16,8 @@ class MyClient(discord.Client):
                 isAdmin = [role.name == 'Admin' for role in message.author.roles]
 
                 if command == 'help':
-                    await message.channel.send('```\n'
+                    await message.reply('Done')
+                    await message.author.send('```\n'
                                                'Commands:\n'
                                                'help - This is the help command\n'
                                                'stats - This is the status command\n'
@@ -25,10 +26,10 @@ class MyClient(discord.Client):
                     members = len([member for member in self.users])
                     print(members)
                     if isAdmin:
-                        await message.channel.send('You are an admin.')
-                        await message.channel.send(members)
+                        await message.channel.send('The stats were sent!')
+                        await message.author.send(members)
                     else:
-                        await message.channel.send('You are not an admin.')
+                        await message.channel.send('You have no access to this command.')
 
                 else:
                     await message.channel.send('This command does not exist.')
