@@ -1,49 +1,75 @@
-import discord, os
+import datetime
+import discord
+import os
 
-
-class MyClient(discord.Client):
-    async def on_ready(self):
-        print(f'Logged on as {self.user}!')
-
-    async def on_message(self, message):
-        if (message.author.bot == False):
-            channel = message.channel.name
-            restricted_channels = ['bot-commands']
-
-            prefix = "b."
-            if message.content.startswith(prefix):
-                if channel in restricted_channels:
-                    command = message.content[len(prefix):]
-                    isAdmin = [role.name == 'Admin' for role in message.author.roles]
-
-                    if command == 'help':
-                        await message.reply('Done')
-                        await message.author.send('```\n'
-                                                  'Commands:\n'
-                                                  'help - This is the help command\n'
-                                                  'stats - This is the status command\n'
-                                                  '```')
-                    if command == 'stats':
-                        members = len([member for member in self.users])
-                        print(members)
-                        if isAdmin:
-                            await message.channel.send('The stats were sent!')
-                            await message.author.send(members)
-                        else:
-                            await message.channel.send('You have no access to this command.')
-
-                    else:
-                        await message.channel.send('This command does not exist.')
-
-                else:
-                    await message.delete()
-                    await message.channel.send('PyHelper is restricted for bot-commands channel.')
-        else:
-            await message.delete()
+from antispam import AntiSpamHandler, UnsupportedAction
+from antispam.enums import Library
+from discord.ext import commands
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+bot = commands.Bot(command_prefix="b.", intents=intents)
+bot.handler = AntiSpamHandler(bot, library=Library.DPY)
+restricted_channel = 'bot-commands'
 
-client = MyClient(intents=intents)
-client.run(os.environ['token'])
+
+@bot.event
+async def on_ready():
+    print(f"-----\nLogged in as: {bot.user.name} : {bot.user.id}\n-----")
+
+
+@bot.event
+async def on_message(message):
+    try:
+        await bot.handler.propagate(message)
+        await bot.process_commands(message)
+    except UnsupportedAction as e:
+        print(e)
+        await message.author.timeout(datetime.timedelta(seconds=10))
+        await message.author.send('Timed-out for spam!')
+
+
+@bot.command(name='info')
+async def info(message):
+    if str(message.channel) == restricted_channel:
+        await message.channel.send('Commands sent!')
+        await message.author.send('```\n'
+                                  'Commands:\n'
+                                  'stats - [ADMIN-ONLY] -Info about a specific user: UserID, Role, Avatar \n'
+                                  'clear - Specify the number of messages you want to clear\n'
+                                  '```')
+    else:
+        await message.delete()
+        await message.channel.send('Command restricted for bot-commands only!')
+
+
+@bot.command(name='stats')
+async def stats(message):
+    isAdmin = [role.name == 'Admin' for role in message.author.roles]
+    if isAdmin:
+        if str(message.channel) == restricted_channel:
+            await message.channel.send(message.author.roles[1])
+            await message.channel.send(bot.user.id)
+            await message.channel.send(bot.user.name)
+            await message.channel.send(bot.user.avatar)
+        else:
+            await message.delete()
+            await message.channel.send('Command restricted for bot-commands only!')
+    else:
+        await message.delete()
+        message.channel.send('Unauthorized access')
+
+
+
+@bot.command(name='clear')
+async def clear(ctx, amount):
+    if str(ctx.channel) == restricted_channel:
+        await ctx.channel.purge(limit=int(amount))
+    else:
+        await ctx.delete()
+        await ctx.channel.send('Command restricted for bot-commands only!')
+
+
+if __name__ == '__main__':
+    bot.run(os.environ['token'])
