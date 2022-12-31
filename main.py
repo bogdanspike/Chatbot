@@ -53,24 +53,6 @@ async def info(message):
         await message.channel.send('Command restricted for bot-commands only!')
 
 
-@bot.command(name='stats')
-async def stats(message,member: Optional[Member]):
-    isAdmin = [role.name == 'Admin' for role in message.author.roles]
-    if isAdmin:
-        if str(message.channel) == restricted_channel:
-            await message.channel.send(member.roles[1])
-            await message.channel.send(member.id)
-            await message.channel.send(member.name)
-            await message.channel.send(member.status)
-
-        else:
-            await message.delete()
-            await message.channel.send('Command restricted for bot-commands only!')
-    else:
-        await message.delete()
-        message.channel.send('Unauthorized access')
-
-
 @bot.command(name="userinfo", aliases=["memberinfo", "ui", "mi"])
 async def user_info(message, target: Optional[Member]):
     try:
@@ -97,7 +79,7 @@ async def user_info(message, target: Optional[Member]):
         await message.send(embed=embed)
     except Exception as e:
         print(e)
-        await message.channel.send('Nu avem')
+        await message.channel.send('Not found')
 
 
 @bot.command(name='clear')
